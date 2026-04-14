@@ -36,43 +36,35 @@ This project provides a solid base for implementing user registration, login, JW
 
 ---
 
-## API Documentation
-# Spring Boot JWT API Endpoints
-
-This document describes the available API endpoints for authentication and user profile management.
-
----
+# API Endpoints Documentation
 
 ## Authentication
 
-These endpoints are used for account registration, login, and token refresh.
+These endpoints handle registration and session security.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/auth/signup` | Register a new user |
-| `POST` | `/auth/login` | Authenticate a user and return access and refresh tokens |
-| `POST` | `/auth/refresh-token` | Generate new tokens using a valid refresh token |
-
----
+| `POST` | `/auth/login` | Login and get access and refresh tokens |
+| `POST` | `/auth/refresh-token` | Generate new tokens using a refresh token |
 
 ## User Management
 
-These endpoints are used to manage the authenticated user's account.
+These endpoints manage the authenticated user's profile.
 
 | Method | Endpoint                | Description |
 |--------|-------------------------|-------------|
 | `GET`  | `/users/profile`        | Get the authenticated user's profile |
 | `POST` | `/users/reset-password` | Reset the authenticated user's password |
 
----
+> **Note**
+>
+> All requests to `/users/**` must include the following header:
+>
+> ```http
+> Authorization: Bearer <token>
+> ```
 
-## Authorization
-
-All requests to protected `/users/**` endpoints must include a valid bearer token in the request header.
-
-
-Authorization: Bearer <token>
----
 ## Project Structure
 
 ```text
