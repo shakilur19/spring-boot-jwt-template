@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:file:${ENV_FILE:.env.dev}[.properties]
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DATABASE_HOST}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-validity-minutes: 1440
+  refresh-token-validity-minutes: 10080

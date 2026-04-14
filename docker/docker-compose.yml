@@ -1,0 +1,71 @@
+services:
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: proxy
+    ports:
+      - "8000:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx:/etc/nginx/conf.d
+    restart: always
+    mem_reservation: "10M"
+    networks:
+      - local-network
+
+  mysql:
+    image: mysql:8.4.2
+    container_name: mysql_db
+    ports:
+      - "${DB_EXPOSED_PORT:-10030}:3306"
+    volumes:
+      - mysql_db:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    restart: always
+    command:
+      - "--mysql-native-password=ON"
+      - "--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+    networks:
+      - local-network
+
+  auth-service:
+    container_name: auth-service
+    image: auth-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.local
+    stdin_open: true
+    tty: true
+    ports:
+      - "${API_EXPOSED_PORT:-10081}:8080"
+    working_dir: /opt/app
+    volumes:
+      - ../:/opt/app
+      - ~/.m2:/root/.m2
+    command: bash -c "chmod +x scripts/run_local.sh && ./scripts/run_local.sh"
+    restart: on-failure
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE}"
+      SPRING_DATASOURCE_USERNAME: "${MYSQL_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD}"
+      JWT_SECRET: "${JWT_SECRET}"
+      RUN_NOTHING_ON_LOCAL: "${RUN_NOTHING_ON_LOCAL}"
+      DB_HOST: mysql
+      DB_PORT: 3306
+    networks:
+      - local-network
+
+volumes:
+  mysql_db:
+    driver: local
+
+networks:
+  local-network:
+    name: ${EXTERNAL_NETWORK:-local-network}
+    external: true

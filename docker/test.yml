@@ -1,0 +1,263 @@
+services:
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: p-pay-proxy
+    ports:
+      - 8000:80
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    restart: always
+    cpus: "0.1"
+    mem_reservation: "10M"
+    mem_limit: "50M"
+    networks:
+      - p-pay-local-network
+
+  redis:
+    image: redis:latest
+    container_name: p-pay-cache
+    ports:
+      - target: 6379
+        published: "${REDIS_PUBLISHED_PORT:-10060}"
+    volumes:
+      - p-pay-cache:/data
+    restart: always
+    cpus: "0.1"
+    mem_reservation: "10M"
+    mem_limit: "50M"
+    networks:
+      - p-pay-local-network
+
+  mysql:
+    image: mysql:8.3.0
+    container_name: p-pay-db
+    ports:
+      - "${DB_EXPOSED_PORT:-10030}:3306"
+    volumes:
+      - p-pay-db:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    restart: always
+    command:
+      - "--mysql-native-password=ON"
+      - "--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    environment:
+      MYSQL_ROOT_PASSWORD: p_pay_root
+      MYSQL_USER: p_pay_user
+      MYSQL_PASSWORD: p_pay_pass
+    cpus: "0.5"
+    mem_reservation: "100M"
+    mem_limit: "400M"
+    networks:
+      - p-pay-local-network
+
+  minio:
+    image: minio/minio
+    container_name: p-pay-minio
+    ports:
+      - "${MINIO_CONSOLE_PORT:-10090}:9000"
+      - "${MINIO_EXPOSED_PORT:-10091}:9001"
+    volumes:
+      - "p-pay-blob:/data"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-root}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-p-pay_root}
+      - MINIO_DEFAULT_BUCKETS=p-pay
+    command: minio server /data --console-address ":9000" --address ":9001"
+    cpus: "0.5"
+    mem_reservation: "50M"
+    mem_limit: "100M"
+    networks:
+      - p-pay-local-network
+
+
+  api:
+    container_name: p-pay-api
+    image: p-pay-api
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: Dockerfile.local
+      context: ../../api/docker
+    ports:
+      - "${API_EXPOSED_PORT:-10081}:8080"
+    environment:
+      VIRTUAL_HOST: "${API_VIRTUAL_HOST:-api.p-pay.local}"
+    working_dir: /opt/app
+    volumes:
+      - ../../api:/opt/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.m2:/root/.m2
+    command: bash -c "chmod +x scripts/run_local.sh && ./scripts/run_local.sh"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1200M
+        reservations:
+          cpus: '0.5'
+          memory: 400M
+    networks:
+      - p-pay-local-network
+    depends_on:
+      - kafka
+
+  accounting:
+    container_name: p-pay-accounting
+    image: p-pay-accounting
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: Dockerfile.local
+      context: ../../accounting/docker
+    ports:
+      - "${API_EXPOSED_PORT:-10083}:8091"
+      - "10283:8092"
+    environment:
+      VIRTUAL_HOST: "${API_VIRTUAL_HOST:-accounting.p-pay.local}"
+    working_dir: /opt/app
+    volumes:
+      - ../../accounting:/opt/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.m2:/root/.m2
+    command: bash -c "chmod +x scripts/run_local.sh && ./scripts/run_local.sh"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1250M
+        reservations:
+          cpus: '0.5'
+          memory: 400M
+    networks:
+      - p-pay-local-network
+    depends_on:
+      - kafka
+
+  auth:
+    container_name: p-pay-auth
+    image: p-pay-auth
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: Dockerfile.local
+      context: ../../auth/docker
+    ports:
+      - "${AUTH_EXPOSED_PORT:-10082}:8090"
+    working_dir: /opt/app
+    volumes:
+      - ../../auth:/opt/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.m2:/root/.m2
+    command: bash -c "chmod +x scripts/run_local.sh && ./scripts/run_local.sh"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1250M
+        reservations:
+          cpus: '0.5'
+          memory: 250M
+    networks:
+      - p-pay-local-network
+
+  notification:
+    container_name: p-pay-notification
+    image: p-pay-notification
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: Dockerfile.local
+      context: ../../notification/docker
+    ports:
+      - "${NOTIFICATION_EXPOSED_PORT:-10084}:8080"
+    working_dir: /opt/app
+    volumes:
+      - ../../notification:/opt/app
+    command: bash -c "chmod +x bin/run_local.sh && ./bin/run_local.sh"
+    cpus: "0.5"
+    mem_reservation: "100M"
+    mem_limit: "200M"
+    networks:
+      - p-pay-local-network
+
+  admin:
+    container_name: p-pay-admin
+    image: p-pay-admin
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: Dockerfile.local
+      context: ../../admin-front/docker
+    ports:
+      - "${ADMIN_FRONT_EXPOSED_PORT:-3002}:3000"
+    volumes:
+      - ../../admin-front:/opt/app
+    environment:
+      VIRTUAL_HOST: ${ADMIN_FRONT_VIRTUAL_HOST:-admin-front.local}
+    command: bash -c "chmod +x bin/run_on_local.sh && ./bin/run_on_local.sh"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 250M
+        reservations:
+          cpus: '0.5'
+          memory: 100M
+    networks:
+      - p-pay-local-network
+
+
+    kafka-ui:
+      image: provectuslabs/kafka-ui:latest
+      depends_on:
+        - kafka
+      ports:
+        - "${TEST_KAFKA_EXPOSED_PORT_1:-11099}:8080"
+      environment:
+        KAFKA_CLUSTERS_0_NAME: local
+        KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+        KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      cpus: "0.5"
+      mem_reservation: "50M"
+      mem_limit: "250M"
+      networks:
+        - p-pay-local-network
+
+  volumes:
+    p-pay-db:
+      driver: local
+    p-pay-cache:
+    p-pay-log:
+    p-pay-blob:
+      driver: local
+    p-pay-zookeeper_data:
+      driver: local
+    p-pay-kafka_data:
+      driver: local
+
+  networks:
+    p-pay-local-network:
+      name: ${EXTERNAL_NETWORK:-p-pay-local-network}
+      external: true
