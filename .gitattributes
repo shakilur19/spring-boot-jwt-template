@@ -1,2 +1,40 @@
-/mvnw text eol=lf
-*.cmd text eol=crlf
+# Documentation
+README.md linguist-documentation
+HELP.md linguist-documentation
+*.md linguist-documentation
+*.txt linguist-documentation
+
+# Ignore environment/sample/local config from language stats
+.env linguist-documentation
+.env.* linguist-documentation
+
+# Ignore IDE/project files
+.idea/** linguist-vendored
+.vscode/** linguist-vendored
+*.iml linguist-vendored
+.classpath linguist-vendored
+.project linguist-vendored
+.settings/** linguist-vendored
+
+# Ignore build output
+target/** linguist-generated
+build/** linguist-generated
+dist/** linguist-generated
+out/** linguist-generated
+.mvn/wrapper/** linguist-vendored
+
+# Ignore logs / temp
+*.log linguist-generated
+.DS_Store linguist-generated
+
+# Count your actual source languages
+*.java linguist-language=Java
+*.kt linguist-language=Kotlin
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.sh linguist-language=Shell
+*.sql linguist-language=SQL
+*.xml linguist-language=XML
+*.properties linguist-language=Java Properties
+*.dockerfile linguist-language=Dockerfile
+Dockerfile linguist-language=Dockerfile
