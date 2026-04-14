@@ -1,7 +1,7 @@
 # Spring Boot JWT Template
 
 A production-ready starter template for building secure authentication APIs with **Spring Boot**, **Spring Security**, **JWT**, and **MySQL**.  
-This project provides a solid base for implementing user registration, login, JWT-based authorization, profile access, and password management.
+This project provides a solid base for implementing user registration, login, JWT-based authorization, refresh-token, profile access, and password management.
 
 ---
 
@@ -14,6 +14,7 @@ This project provides a solid base for implementing user registration, login, JW
 - Password reset endpoint
 - Request/response DTO structure
 - Global exception handling with `@RestControllerAdvice`
+- Custom Validator `@ValidPassword`
 - MySQL integration with Spring Data JPA
 - Docker Compose setup for local development
 - Environment-based configuration using `.env.dev` and `.env.prod`

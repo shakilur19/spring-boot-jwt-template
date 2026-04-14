@@ -4,6 +4,7 @@ import com.jwttemplate.api.auth.entity.User;
 import com.jwttemplate.api.utils.common_response.CommonErrorResponse;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -35,6 +36,61 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
     private final ObjectMapper objectMapper;
 
+//    @Override
+//    protected void doFilterInternal(
+//            HttpServletRequest request,
+//            HttpServletResponse response,
+//            FilterChain filterChain
+//    ) throws ServletException, IOException {
+//
+//        try {
+//            String authHeader = request.getHeader("Authorization");
+//
+//            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//                filterChain.doFilter(request, response);
+//                return;
+//            }
+//
+//            String token = authHeader.substring(7);
+//            String username = extractUsername(token);
+//
+//            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+//                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+//                String userId = extractUserId(token);
+//
+//                if (validateToken(token, userDetails) && userId != null) {
+//                    User user = new User();
+//                    user.setId(Integer.parseInt(userId));
+//                    user.setEmail(userDetails.getUsername());
+//
+//                    UsernamePasswordAuthenticationToken authToken =
+//                            new UsernamePasswordAuthenticationToken(
+//                                    user,
+//                                    null,
+//                                    userDetails.getAuthorities()
+//                            );
+//
+//                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                    SecurityContextHolder.getContext().setAuthentication(authToken);
+//                }
+//            }
+//
+//            filterChain.doFilter(request, response);
+//        } catch (ExpiredJwtException e) {
+//            writeErrorResponse(
+//                    response,
+//                    HttpServletResponse.SC_UNAUTHORIZED,
+//                    new CommonErrorResponse("Token is expired")
+//            );
+//        } catch (Exception e) {
+//            writeErrorResponse(
+//                    response,
+//                    HttpServletResponse.SC_FORBIDDEN,
+//                    new CommonErrorResponse("Something went wrong with token")
+//            );
+//        }
+//    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -42,14 +98,14 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             String token = authHeader.substring(7);
             String username = extractUsername(token);
 
@@ -73,21 +129,23 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-
-            filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
             writeErrorResponse(
                     response,
                     HttpServletResponse.SC_UNAUTHORIZED,
                     new CommonErrorResponse("Token is expired")
             );
-        } catch (Exception e) {
+            return;
+        } catch (JwtException | IllegalArgumentException e) {
             writeErrorResponse(
                     response,
                     HttpServletResponse.SC_FORBIDDEN,
-                    new CommonErrorResponse("Something went wrong with token")
+                    new CommonErrorResponse("Invalid token")
             );
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     private void writeErrorResponse(

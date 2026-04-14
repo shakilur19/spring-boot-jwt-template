@@ -42,4 +42,10 @@ public class LoginControllerAdvice {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new CommonErrorResponse("Invalid email or password"));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<CommonErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new CommonErrorResponse(e.getMessage()));
+    }
 }
