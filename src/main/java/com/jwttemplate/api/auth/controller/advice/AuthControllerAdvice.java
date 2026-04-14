@@ -13,7 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class LoginControllerAdvice {
+public class AuthControllerAdvice {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<CommonErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
