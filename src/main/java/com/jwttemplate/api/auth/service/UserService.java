@@ -7,6 +7,7 @@ import com.jwttemplate.api.auth.controller.request.SignupRequest;
 import com.jwttemplate.api.auth.entity.CustomUserDetails;
 import com.jwttemplate.api.auth.entity.User;
 import com.jwttemplate.api.auth.repository.UserRepository;
+import com.jwttemplate.api.user.controller.request.UpdateProfileRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -83,6 +84,24 @@ public class UserService implements UserDetailsService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    public User updateProfile(Integer userId, UpdateProfileRequest request) {
+        User user = getUserProfile(userId);
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setGender(request.getGender().trim());
+
+        return userRepository.save(user);
+    }
+
+    public void softDeleteUser(Integer userId) {
+        User user = getUserProfile(userId);
+
+        user.setDeletedAt(OffsetDateTime.now());
+
         userRepository.save(user);
     }
 }

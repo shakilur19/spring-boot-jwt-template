@@ -52,10 +52,12 @@ These endpoints handle registration and session security.
 
 These endpoints manage the authenticated user's profile.
 
-| Method | Endpoint                | Description |
-|--------|-------------------------|-------------|
-| `GET`  | `/users/profile`        | Get the authenticated user's profile |
-| `POST` | `/users/reset-password` | Reset the authenticated user's password |
+| Method   | Endpoint                | Description                                 |
+|----------|-------------------------|---------------------------------------------|
+| `GET`    | `/users/profile`        | Get the authenticated user's profile        |
+| `POST`   | `/users/reset-password` | Reset the authenticated user's password     |
+| `PUT`    | `/users/update-profile` | Update the authenticated user's profile's info |
+| `DELETE` | `/users/delete-profile` | Soft Delete the authenticated user  |
 
 > **Note**
 >

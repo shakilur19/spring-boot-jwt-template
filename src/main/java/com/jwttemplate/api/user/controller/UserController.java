@@ -1,6 +1,7 @@
 package com.jwttemplate.api.user.controller;
 
 import com.jwttemplate.api.auth.controller.request.ResetPasswordRequest;
+import com.jwttemplate.api.user.controller.request.UpdateProfileRequest;
 import com.jwttemplate.api.user.response.ProfileResponse;
 import com.jwttemplate.api.auth.entity.User;
 import com.jwttemplate.api.auth.service.UserService;
@@ -33,5 +34,27 @@ public class UserController {
     ) {
         userService.resetPassword(user.getId(), request);
         return ResponseEntity.ok(new CommonMessageResponse("Password reset successfully"));
+    }
+
+    @PutMapping("/update-profile")
+    public ResponseEntity<ProfileResponse> updateProfile(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(
+                ProfileResponse.buildProfile(
+                        userService.updateProfile(user.getId(), request)
+                )
+        );
+    }
+
+    @DeleteMapping("/delete-profile")
+    public ResponseEntity<CommonMessageResponse> deleteProfile(
+            @AuthenticationPrincipal User user
+    ) {
+        userService.softDeleteUser(user.getId());
+        return ResponseEntity.ok(
+                new CommonMessageResponse("Profile deleted successfully")
+        );
     }
 }
